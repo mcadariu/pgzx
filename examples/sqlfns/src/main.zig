@@ -18,11 +18,11 @@ comptime {
 // The functions accepts the FunctionCallInfoData struct and must return a Datum and no Zig errors.
 //
 
-export fn pg_finfo_hello_world_c() callconv(.C) [*c]const pg.Pg_finfo_record {
+export fn pg_finfo_hello_world_c() callconv(.c) [*c]const pg.c.Pg_finfo_record {
     return pgzx.fmgr.FunctionV1();
 }
 
-export fn hello_world_c(fcinfo: pg.FunctionCallInfo) callconv(.C) pg.Datum {
+export fn hello_world_c(fcinfo: pg.c.FunctionCallInfo) callconv(.c) pg.c.Datum {
     // When using the C interface we can not use any of the PG_RETURN or PG_GETARG macros directly.
     //
     // This function accepts a 'string' of type 'text' and returns a new string of type 'text'.
@@ -43,7 +43,7 @@ export fn hello_world_c(fcinfo: pg.FunctionCallInfo) callconv(.C) pg.Datum {
         };
 
         const allocator = pgzx.mem.PGCurrentContextAllocator;
-        const hello = std.fmt.allocPrintZ(allocator, "Hello, {s}!", .{name}) catch |e| {
+        const hello = std.fmt.allocPrintSentinel(allocator, "Hello, {s}!", .{name}, 0) catch |e| {
             pgzx.elog.throwAsPostgresError(@src(), e);
             unreachable;
         };
@@ -71,7 +71,7 @@ comptime {
 
 fn hello_world_zig(name: ?[:0]const u8) ![:0]const u8 {
     return if (name) |n|
-        try std.fmt.allocPrintZ(pgzx.mem.PGCurrentContextAllocator, "Hello, {s}!", .{n})
+        try std.fmt.allocPrintSentinel(pgzx.mem.PGCurrentContextAllocator, "Hello, {s}!", .{n}, 0)
     else
         "Hello World";
 }
@@ -84,7 +84,7 @@ comptime {
 
 fn hello_world_zig_null(name: ?[:0]const u8) !?[:0]const u8 {
     return if (name) |n|
-        try std.fmt.allocPrintZ(pgzx.mem.PGCurrentContextAllocator, "Hello, {s}!", .{n})
+        try std.fmt.allocPrintSentinel(pgzx.mem.PGCurrentContextAllocator, "Hello, {s}!", .{n}, 0)
     else
         null;
 }
@@ -96,21 +96,21 @@ fn hello_world_zig_null(name: ?[:0]const u8) !?[:0]const u8 {
 // In this example we will also accept and return a Datum. This requires us to mark a
 // NULL return in the FunctionCallInfo.
 //
-// Note: alternatively we could returns a `?pg.Datum` and just return `null`.
+// Note: alternatively we could returns a `?pg.c.Datum` and just return `null`.
 // We use the FunctionCallInfo to demonstrate access how to access them.
 
 comptime {
     pgzx.PG_FUNCTION_V1("hello_world_zig_datum", hello_world_zig_datum);
 }
 
-fn hello_world_zig_datum(fcinfo: pg.FunctionCallInfo, arg: ?pg.Datum) !pg.Datum {
+fn hello_world_zig_datum(fcinfo: pg.c.FunctionCallInfo, arg: ?pg.c.Datum) !pg.c.Datum {
     if (arg == null) {
         fcinfo.*.isnull = true;
         return 0;
     }
 
     const name = try pgzx.datum.getDatumTextSliceZ(arg.?);
-    const message = try std.fmt.allocPrintZ(pgzx.mem.PGCurrentContextAllocator, "Hello, {s}!", .{name});
+    const message = try std.fmt.allocPrintSentinel(pgzx.mem.PGCurrentContextAllocator, "Hello, {s}!", .{name}, 0);
     return try pgzx.datum.sliceToDatumTextZ(message);
 }
 
@@ -127,7 +127,7 @@ comptime {
     pgzx.PG_EXPORT(struct {
         pub fn hello_world_anon(name: ?[:0]const u8) ![:0]const u8 {
             return if (name) |n|
-                try std.fmt.allocPrintZ(pgzx.mem.PGCurrentContextAllocator, "Hello, {s}!", .{n})
+                try std.fmt.allocPrintSentinel(pgzx.mem.PGCurrentContextAllocator, "Hello, {s}!", .{n}, 0)
             else
                 "Hello World";
         }
@@ -143,7 +143,7 @@ comptime {
 const mod_hello_world = struct {
     pub fn hello_world_mod(name: ?[:0]const u8) ![:0]const u8 {
         return if (name) |n|
-            try std.fmt.allocPrintZ(pgzx.mem.PGCurrentContextAllocator, "Hello, {s}!", .{n})
+            try std.fmt.allocPrintSentinel(pgzx.mem.PGCurrentContextAllocator, "Hello, {s}!", .{n}, 0)
         else
             "Hello World";
     }

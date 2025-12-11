@@ -47,13 +47,13 @@ pub fn main() !void {
 
     // 1. collect all node tags into `node_tags` list using comptime reflection.
     @setEvalBranchQuota(50000);
-    var node_tags = std.ArrayList([]const u8).init(arena);
-    defer node_tags.deinit();
+    var node_tags = std.ArrayList([]const u8){};
+    defer node_tags.deinit(arena);
     const pg_mod = @typeInfo(pg).@"struct";
     inline for (pg_mod.decls) |decl| {
         const name = decl.name;
         if (std.mem.startsWith(u8, name, "T_")) {
-            node_tags.append(decl.name) catch |err| {
+            node_tags.append(arena, decl.name) catch |err| {
                 fatal("build node tags list: {}\n", .{err});
             };
         }
@@ -63,7 +63,8 @@ pub fn main() !void {
     try out.writeAll("pub const Tag = enum (pg.NodeTag) {\n");
     for (node_tags.items) |tag| {
         const name = tag[2..];
-        try out.writer().print("{s} = pg.{s},\n", .{ name, tag });
+        const line = try std.fmt.allocPrint(arena, "{s} = pg.{s},\n", .{ name, tag });
+        try out.writeAll(line);
     }
     try out.writeAll("};\n\n");
 
@@ -75,7 +76,8 @@ pub fn main() !void {
 
         const typeName = tag[2..];
         try out.writeAll(".{");
-        try out.writer().print("pg.{s}, pg.{s}", .{ tag, typeName });
+        const line = try std.fmt.allocPrint(arena, "pg.{s}, pg.{s}", .{ tag, typeName });
+        try out.writeAll(line);
         try out.writeAll("},\n");
     }
     try out.writeAll("};\n");

@@ -62,14 +62,18 @@ pub fn build(b: *std.Build) void {
     // codegen
     // The codegen produces Zig files that are imported as modules by pgzx.
     const node_tags_src = blk: {
-        const tool = b.addExecutable(.{
-            .name = "gennodetags",
+        const tool_module = b.createModule(.{
             .root_source_file = b.path("./tools/gennodetags/main.zig"),
             .target = b.graph.host,
             .link_libc = true,
         });
-        tool.root_module.addIncludePath(.{ .cwd_relative = pgbuild.getIncludeServerDir() });
-        tool.root_module.addIncludePath(.{ .cwd_relative = pgbuild.getIncludeDir() });
+        tool_module.addIncludePath(.{ .cwd_relative = pgbuild.getIncludeServerDir() });
+        tool_module.addIncludePath(.{ .cwd_relative = pgbuild.getIncludeDir() });
+
+        const tool = b.addExecutable(.{
+            .name = "gennodetags",
+            .root_module = tool_module,
+        });
 
         const tool_step = b.addRunArtifact(tool);
         break :blk tool_step.addOutputFileArg("nodetags.zig");

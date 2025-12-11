@@ -28,30 +28,30 @@ const SourceLocation = std.builtin.SourceLocation;
 ///
 pub const api = struct {
     pub const Level = enum(c_int) {
-        Debug5 = pg.DEBUG5,
-        Debug4 = pg.DEBUG4,
-        Debug3 = pg.DEBUG3,
-        Debug2 = pg.DEBUG2,
-        Debug1 = pg.DEBUG1,
+        Debug5 = pg.c.DEBUG5,
+        Debug4 = pg.c.DEBUG4,
+        Debug3 = pg.c.DEBUG3,
+        Debug2 = pg.c.DEBUG2,
+        Debug1 = pg.c.DEBUG1,
 
-        Log = pg.LOG,
-        LogServerOnly = pg.LOG_SERVER_ONLY,
+        Log = pg.c.LOG,
+        LogServerOnly = pg.c.LOG_SERVER_ONLY,
 
-        Info = pg.INFO,
-        Notice = pg.NOTICE,
-        Warning = pg.WARNING,
-        WarningClientOnly = pg.WARNING_CLIENT_ONLY,
-        Error = pg.ERROR,
-        Fatal = pg.FATAL,
-        Panic = pg.PANIC,
+        Info = pg.c.INFO,
+        Notice = pg.c.NOTICE,
+        Warning = pg.c.WARNING,
+        WarningClientOnly = pg.c.WARNING_CLIENT_ONLY,
+        Error = pg.c.ERROR,
+        Fatal = pg.c.FATAL,
+        Panic = pg.c.PANIC,
     };
 
     pub const Field = enum(c_int) {
-        SchemaName = pg.PG_DIAG_SCHEMA_NAME,
-        TableName = pg.PG_DIAG_TABLE_NAME,
-        ColumnName = pg.PG_DIAG_COLUMN_NAME,
-        DataTypeName = pg.PG_DIAG_DATATYPE_NAME,
-        ConstraintName = pg.PG_DIAG_CONSTRAINT_NAME,
+        SchemaName = pg.c.PG_DIAG_SCHEMA_NAME,
+        TableName = pg.c.PG_DIAG_TABLE_NAME,
+        ColumnName = pg.c.PG_DIAG_COLUMN_NAME,
+        DataTypeName = pg.c.PG_DIAG_DATATYPE_NAME,
+        ConstraintName = pg.c.PG_DIAG_CONSTRAINT_NAME,
     };
 
     pub inline fn ereport(src: SourceLocation, level: Level, opts: anytype) void {
@@ -62,20 +62,20 @@ pub const api = struct {
         try ereportDomainNoJump(src, level, null, opts);
     }
 
-    pub inline fn errsave(src: SourceLocation, context: ?*pg.Node, opts: anytype) void {
+    pub inline fn errsave(src: SourceLocation, context: ?*pg.c.Node, opts: anytype) void {
         errsaveDomain(src, context, null, opts);
     }
 
-    pub inline fn errsaveNoJump(src: SourceLocation, context: ?*pg.Node, opts: anytype) err.ElogIndicator!void {
+    pub inline fn errsaveNoJump(src: SourceLocation, context: ?*pg.c.Node, opts: anytype) err.ElogIndicator!void {
         try errsaveDomainNoJump(src, context, null, opts);
     }
 
-    pub inline fn errsaveValue(comptime T: type, src: SourceLocation, context: ?*pg.Node, value: T, opts: anytype) T {
+    pub inline fn errsaveValue(comptime T: type, src: SourceLocation, context: ?*pg.c.Node, value: T, opts: anytype) T {
         errsave(src, context, opts);
         return value;
     }
 
-    pub inline fn errsaveValueNoJump(comptime T: type, src: SourceLocation, context: ?*pg.Node, value: T, opts: anytype) err.ElogIndicator!T {
+    pub inline fn errsaveValueNoJump(comptime T: type, src: SourceLocation, context: ?*pg.c.Node, value: T, opts: anytype) err.ElogIndicator!T {
         try errsaveNoJump(src, context, opts);
         return value;
     }
@@ -94,57 +94,57 @@ pub const api = struct {
         }
     }
 
-    pub inline fn errsaveDomain(src: SourceLocation, context: ?*pg.Node, domain: ?[:0]const u8, opts: anytype) void {
+    pub inline fn errsaveDomain(src: SourceLocation, context: ?*pg.c.Node, domain: ?[:0]const u8, opts: anytype) void {
         if (errsave_start(context, domain)) {
             inline for (opts) |opt| opt.call();
             errsave_finish(src, context, .{ .allow_longjmp = true }) catch unreachable;
         }
     }
 
-    pub inline fn errsaveDomainNoJump(src: SourceLocation, context: ?*pg.Node, domain: ?[:0]const u8, opts: anytype) err.ElogIndicator!void {
+    pub inline fn errsaveDomainNoJump(src: SourceLocation, context: ?*pg.c.Node, domain: ?[:0]const u8, opts: anytype) err.ElogIndicator!void {
         if (errsave_start(context, domain)) {
             inline for (opts) |opt| opt.call();
             try errsave_finish(src, context, .{ .allow_longjmp = false });
         }
     }
 
-    pub inline fn errsaveDomainValue(src: SourceLocation, context: ?*pg.Node, value: anytype, domain: ?[:0]const u8, opts: anytype) @TypeOf(value) {
+    pub inline fn errsaveDomainValue(src: SourceLocation, context: ?*pg.c.Node, value: anytype, domain: ?[:0]const u8, opts: anytype) @TypeOf(value) {
         errsaveDomain(src, context, domain, opts);
         return value;
     }
 
-    pub inline fn errsaveDomainValueNoJump(src: SourceLocation, context: ?*pg.Node, value: anytype, domain: ?[:0]const u8, opts: anytype) err.ElogIndicator!@TypeOf(value) {
+    pub inline fn errsaveDomainValueNoJump(src: SourceLocation, context: ?*pg.c.Node, value: anytype, domain: ?[:0]const u8, opts: anytype) err.ElogIndicator!@TypeOf(value) {
         try errsaveDomainNoJump(src, context, domain, opts);
         return value;
     }
 
     pub inline fn errstart(level: Level, domain: ?[:0]const u8) bool {
-        return pg.errstart(@intFromEnum(level), if (domain) |d| d.ptr else null);
+        return pg.c.errstart(@intFromEnum(level), if (domain) |d| d.ptr else null);
     }
 
     /// Finalize the current error report and raise a Postgres error if the error level is `ERROR`.
     pub inline fn errfinish(src: SourceLocation, kargs: struct { allow_longjmp: bool }) err.ElogIndicator!void {
         if (kargs.allow_longjmp) {
-            return pg.errfinish(src.file, @as(c_int, @intCast(src.line)), src.fn_name);
+            return pg.c.errfinish(src.file, @as(c_int, @intCast(src.line)), src.fn_name);
         }
-        try err.wrap(pg.errfinish, .{ src.file, @as(c_int, @intCast(src.line)), src.fn_name });
+        try err.wrap(pg.c.errfinish, .{ src.file, @as(c_int, @intCast(src.line)), src.fn_name });
     }
 
-    pub inline fn errsave_start(context: ?*pg.Node, domain: ?[:0]const u8) bool {
-        return pg.errsave_start(context, if (domain) |d| d.ptr else null);
+    pub inline fn errsave_start(context: ?*pg.c.Node, domain: ?[:0]const u8) bool {
+        return pg.c.errsave_start(context, if (domain) |d| d.ptr else null);
     }
 
-    pub inline fn errsave_finish(src: SourceLocation, context: ?*pg.Node, kargs: struct { allow_longjmp: bool }) err.ElogIndicator!void {
+    pub inline fn errsave_finish(src: SourceLocation, context: ?*pg.c.Node, kargs: struct { allow_longjmp: bool }) err.ElogIndicator!void {
         if (kargs.allow_longjmp) {
-            pg.errsave_finish(context, src.file, @as(c_int, @intCast(src.line)), src.fn_name);
+            pg.c.errsave_finish(context, src.file, @as(c_int, @intCast(src.line)), src.fn_name);
         }
-        try err.wrap(pg.errsave_finish, .{ context, src.file, @as(c_int, @intCast(src.line)), src.fn_name });
+        try err.wrap(pg.c.errsave_finish, .{ context, src.file, @as(c_int, @intCast(src.line)), src.fn_name });
     }
 
     const OptErrCode = struct {
         code: c_int,
         pub inline fn call(self: OptErrCode) void {
-            _ = pg.errcode(self.code);
+            _ = pg.c.errcode(self.code);
         }
     };
 
@@ -162,25 +162,25 @@ pub const api = struct {
 
                 //@compileLog("FmtMessage:", fmt, self.args);
 
-                const msg = std.fmt.allocPrintZ(memctx.allocator(), fmt, self.args) catch unreachable();
+                const msg = std.fmt.allocPrintSentinel(memctx.allocator(), fmt, self.args, 0) catch unreachable();
                 _ = msgtype(msg.ptr);
             }
         };
     }
 
-    pub inline fn errmsg(comptime fmt: []const u8, args: anytype) FmtMessage(pg.errmsg, fmt, @TypeOf(args)) {
+    pub inline fn errmsg(comptime fmt: []const u8, args: anytype) FmtMessage(pg.c.errmsg, fmt, @TypeOf(args)) {
         return .{ .args = args };
     }
 
-    pub inline fn errdetail(comptime fmt: []const u8, args: anytype) FmtMessage(pg.errdetail, fmt, @TypeOf(args)) {
+    pub inline fn errdetail(comptime fmt: []const u8, args: anytype) FmtMessage(pg.c.errdetail, fmt, @TypeOf(args)) {
         return .{ .args = args };
     }
 
-    pub inline fn errdetail_log(comptime fmt: []const u8, args: anytype) FmtMessage(pg.errdetail_log, fmt, @TypeOf(args)) {
+    pub inline fn errdetail_log(comptime fmt: []const u8, args: anytype) FmtMessage(pg.c.errdetail_log, fmt, @TypeOf(args)) {
         return .{ .args = args };
     }
 
-    pub inline fn errhint(comptime fmt: []const u8, args: anytype) FmtMessage(pg.errhint, fmt, @TypeOf(args)) {
+    pub inline fn errhint(comptime fmt: []const u8, args: anytype) FmtMessage(pg.c.errhint, fmt, @TypeOf(args)) {
         return .{ .args = args };
     }
 
@@ -190,8 +190,8 @@ pub const api = struct {
 
         pub inline fn call(self: SpecialErrCode) void {
             switch (self) {
-                SpecialErrCode.ForFileAccess => pg.errcode_for_file_access(),
-                SpecialErrCode.ForSocketAccess => pg.errcode_for_socket_access(),
+                SpecialErrCode.ForFileAccess => pg.c.errcode_for_file_access(),
+                SpecialErrCode.ForSocketAccess => pg.c.errcode_for_socket_access(),
             }
         }
     };
@@ -207,7 +207,7 @@ pub const api = struct {
     const OptBacktrace = struct {
         pub inline fn call(self: OptBacktrace) void {
             _ = self;
-            pg.errbacktrace();
+            pg.c.errbacktrace();
         }
     };
 
@@ -218,7 +218,7 @@ pub const api = struct {
     pub const OptHideStatement = struct {
         hide: bool = true,
         pub inline fn call(self: OptHideStatement) void {
-            _ = pg.errhidestmt(self.hide);
+            _ = pg.c.errhidestmt(self.hide);
         }
     };
 
@@ -229,7 +229,7 @@ pub const api = struct {
     pub const OptHideContext = struct {
         hide: bool = true,
         pub inline fn call(self: OptHideContext) void {
-            _ = pg.errhidecontext(self.hide);
+            _ = pg.c.errhidecontext(self.hide);
         }
     };
 
@@ -242,7 +242,7 @@ pub const api = struct {
         value: [:0]const u8,
 
         pub inline fn call(self: OptField) void {
-            _ = pg.err_generic_string(@intFromEnum(self.field), self.value);
+            _ = pg.c.err_generic_string(@intFromEnum(self.field), self.value);
         }
     };
 
@@ -271,7 +271,13 @@ pub const api = struct {
     }
 };
 
-pub usingnamespace api;
+// In Zig 0.15+, usingnamespace was removed with no direct replacement.
+// Code that previously used items from this module directly must now either:
+// 1. Access through the api namespace: `const elog_mod = @import("elog.zig"); elog_mod.api.ereport(...)`
+// 2. Create local aliases: `const ereport = @import("elog.zig").api.ereport;`
+//
+// For now, we don't re-export at module level to avoid ambiguous references.
+// If needed, individual files can create their own local aliases.
 
 /// Turn the zig error into a postgres error. The errror will be send to
 /// Postgres and logged using the error level.
@@ -296,12 +302,12 @@ pub fn throwAsPostgresError(src: SourceLocation, e: anyerror) noreturn {
     switch (e) {
         errset.PGErrorStack => err.pgRethrow(),
         errset.OutOfMemory => api.ereport(src, .Error, .{
-            api.errcode(pg.ERRCODE_OUT_OF_MEMORY),
+            api.errcode(pg.c.ERRCODE_OUT_OF_MEMORY),
             api.errmsg("Not enough memory", .{}),
         }),
         else => |leftover_err| {
             api.ereport(src, .Error, .{
-                api.errcode(pg.ERRCODE_INTERNAL_ERROR),
+                api.errcode(pg.c.ERRCODE_INTERNAL_ERROR),
                 api.errmsg("Unexpected error: {s}", .{@errorName(leftover_err)}),
             });
         },
@@ -317,7 +323,7 @@ pub fn isPostgresError(e: anyerror) bool {
 
 /// Provide support to integrate std.log with Postgres elog.
 pub var options: struct {
-    postgresLogFnLeven: c_int = pg.LOG_SERVER_ONLY,
+    postgresLogFnLeven: c_int = pg.c.LOG_SERVER_ONLY,
 } = .{};
 
 pub fn logFn(
@@ -332,16 +338,16 @@ pub fn logFn(
     if (!api.errstart(@enumFromInt(options.postgresLogFnLeven), null)) {
         return;
     }
-    api.errcode(pg.ERRCODE_INTERNAL_ERROR).call();
+    api.errcode(pg.c.ERRCODE_INTERNAL_ERROR).call();
 
     // We nede a temporary buffer for writing. Postgres will copy the message, so we should
     // clean up the buffer ourselvesi.
     var buf = std.ArrayList(u8).initCapacity(mem.PGCurrentContextAllocator, prefix.len + format.len + 1) catch return;
-    defer buf.deinit();
-    buf.writer().print(prefix, .{}) catch return;
-    buf.writer().print(format, args) catch return;
-    buf.append(0) catch return;
-    _ = pg.errmsg("%s", buf.items[0 .. buf.items.len - 1 :0].ptr);
+    defer buf.deinit(mem.PGCurrentContextAllocator);
+    buf.writer(mem.PGCurrentContextAllocator).print(prefix, .{}) catch return;
+    buf.writer(mem.PGCurrentContextAllocator).print(format, args) catch return;
+    buf.append(mem.PGCurrentContextAllocator, 0) catch return;
+    _ = pg.c.errmsg("%s", buf.items[0 .. buf.items.len - 1 :0].ptr);
 
     const src = std.mem.zeroInit(SourceLocation, .{});
     api.errfinish(src, .{ .allow_longjmp = false }) catch {};
@@ -349,34 +355,34 @@ pub fn logFn(
 
 /// Use PostgreSQL elog to log a formatted message using the `DEBUG5` level.
 pub fn Debug5(src: SourceLocation, comptime fmt: []const u8, args: anytype) void {
-    sendElog(src, pg.DEBUG5, fmt, args);
+    sendElog(src, pg.c.DEBUG5, fmt, args);
 }
 
 /// Use PostgreSQL elog to log a formatted message using the `DEBUG4` level.
 pub fn Debug4(src: SourceLocation, comptime fmt: []const u8, args: anytype) void {
-    sendElog(src, pg.DEBUG4, fmt, args);
+    sendElog(src, pg.c.DEBUG4, fmt, args);
 }
 
 /// Use PostgreSQL elog to log a formatted message using the `DEBUG3` level.
 pub fn Debug3(src: SourceLocation, comptime fmt: []const u8, args: anytype) void {
-    sendElog(src, pg.DEBUG3, fmt, args);
+    sendElog(src, pg.c.DEBUG3, fmt, args);
 }
 
 /// Use PostgreSQL elog to log a formatted message using the `DEBUG2` level.
 pub fn Debug2(src: SourceLocation, comptime fmt: []const u8, args: anytype) void {
-    sendElog(src, pg.DEBUG2, fmt, args);
+    sendElog(src, pg.c.DEBUG2, fmt, args);
 }
 
 /// Use PostgreSQL elog to log a formatted message using the `DEBUG1` level.
 pub fn Debug1(src: SourceLocation, comptime fmt: []const u8, args: anytype) void {
-    sendElog(src, pg.DEBUG1, fmt, args);
+    sendElog(src, pg.c.DEBUG1, fmt, args);
 }
 
 /// Use PostgreSQL elog to log a formatted message using the `LOG` level.
 ///
 /// Messages using `LOG` are send to the server by default.
 pub fn Log(src: SourceLocation, comptime fmt: []const u8, args: anytype) void {
-    sendElog(src, pg.LOG, fmt, args);
+    sendElog(src, pg.c.LOG, fmt, args);
 }
 
 /// Use PostgreSQL elog to log a formatted message using the `LOG` level.
@@ -384,14 +390,14 @@ pub fn Log(src: SourceLocation, comptime fmt: []const u8, args: anytype) void {
 /// Append the error name to the error message or emit the top message from the
 /// error stack if cause == PGErrorStack.
 pub fn LogWithCause(src: SourceLocation, cause: anyerror, comptime fmt: []const u8, args: anytype) void {
-    sendElogWithCause(src, pg.LOG, cause, fmt, args);
+    sendElogWithCause(src, pg.c.LOG, cause, fmt, args);
 }
 
 /// Use PostgreSQL elog to log a formatted message using the `LOG` level.
 ///
 /// Similar to `Log`, but message is never send to clients.
 pub fn LogServerOnly(src: SourceLocation, comptime fmt: []const u8, args: anytype) void {
-    sendElog(src, pg.LOG_SERVER_ONLY, fmt, args);
+    sendElog(src, pg.c.LOG_SERVER_ONLY, fmt, args);
 }
 
 /// Use PostgreSQL elog to log a formatted message using the `LOG` level.
@@ -401,12 +407,12 @@ pub fn LogServerOnly(src: SourceLocation, comptime fmt: []const u8, args: anytyp
 /// Append the error name to the error message or emit the top message from the
 /// error stack if cause == PGErrorStack.
 pub fn LogServerOnlyWithCause(src: SourceLocation, cause: anyerror, comptime fmt: []const u8, args: anytype) void {
-    sendElogWithCause(src, pg.LOG_SERVER_ONLY, cause, fmt, args);
+    sendElogWithCause(src, pg.c.LOG_SERVER_ONLY, cause, fmt, args);
 }
 
 /// Use PostgreSQL elog to log a formatted message at `Info` level.
 pub fn Info(src: SourceLocation, comptime fmt: []const u8, args: anytype) void {
-    sendElog(src, pg.INFO, fmt, args);
+    sendElog(src, pg.c.INFO, fmt, args);
 }
 
 /// Use PostgreSQL elog to log a formatted message at `Info` level.
@@ -414,12 +420,12 @@ pub fn Info(src: SourceLocation, comptime fmt: []const u8, args: anytype) void {
 /// Append the error name to the error message or emit the top message from the
 /// error stack if cause == PGErrorStack.
 pub fn InfoWithCause(src: SourceLocation, cause: anyerror, comptime fmt: []const u8, args: anytype) void {
-    sendElogWithCause(src, pg.INFO, cause, fmt, args);
+    sendElogWithCause(src, pg.c.INFO, cause, fmt, args);
 }
 
 /// Use PostgreSQL elog to log a formatted message at `Notice` level.
 pub fn Notice(src: SourceLocation, comptime fmt: []const u8, args: anytype) void {
-    sendElog(src, pg.NOTICE, fmt, args);
+    sendElog(src, pg.c.NOTICE, fmt, args);
 }
 
 /// Use PostgreSQL elog to log a formatted message at `Notice` level.
@@ -427,12 +433,12 @@ pub fn Notice(src: SourceLocation, comptime fmt: []const u8, args: anytype) void
 /// Append the error name to the error message or emit the top message from the
 /// error stack if cause == PGErrorStack.
 pub fn NoticeWithCause(src: SourceLocation, cause: anyerror, comptime fmt: []const u8, args: anytype) void {
-    sendElogWithCause(src, pg.NOTICE, cause, fmt, args);
+    sendElogWithCause(src, pg.c.NOTICE, cause, fmt, args);
 }
 
 /// Use PostgreSQL elog to log a formatted message at `Warning` level.
 pub fn Warning(src: SourceLocation, comptime fmt: []const u8, args: anytype) void {
-    sendElog(src, pg.WARNING, fmt, args);
+    sendElog(src, pg.c.WARNING, fmt, args);
 }
 
 /// Use PostgreSQL elog to log a formatted message at `Warning` level.
@@ -440,12 +446,12 @@ pub fn Warning(src: SourceLocation, comptime fmt: []const u8, args: anytype) voi
 /// Append the error name to the error message or emit the top message from the
 /// error stack if cause == PGErrorStack.
 pub fn WarningWithCause(src: SourceLocation, cause: anyerror, comptime fmt: []const u8, args: anytype) void {
-    sendElogWithCause(src, pg.WARNING, cause, fmt, args);
+    sendElogWithCause(src, pg.c.WARNING, cause, fmt, args);
 }
 
 /// Use PostgreSQL elog to log a formatted message at `PGWARNING` level.
 pub fn PGWarning(src: SourceLocation, comptime fmt: []const u8, args: anytype) void {
-    sendElog(src, pg.PGWARNING, fmt, args);
+    sendElog(src, pg.c.PGWARNING, fmt, args);
 }
 
 /// Use PostgreSQL elog to log a formatted message at `PGWARNING` level.
@@ -453,7 +459,7 @@ pub fn PGWarning(src: SourceLocation, comptime fmt: []const u8, args: anytype) v
 /// Append the error name to the error message or emit the top message from the
 /// error stack if cause == PGErrorStack.
 pub fn PGWarningWithCause(src: SourceLocation, cause: anyerror, comptime fmt: []const u8, args: anytype) void {
-    sendElogWithCause(src, pg.PGWARNING, cause, fmt, args);
+    sendElogWithCause(src, pg.c.PGWARNING, cause, fmt, args);
 }
 
 /// Use PostgreSQL elog to log a formatted message at `Error` level.
@@ -461,7 +467,7 @@ pub fn PGWarningWithCause(src: SourceLocation, cause: anyerror, comptime fmt: []
 /// Warning:
 /// Using Error will cause Postgres to throw an error by using `longjump`.
 pub fn ErrorThrow(src: SourceLocation, comptime fmt: []const u8, args: anytype) void {
-    sendElog(src, pg.ERROR, fmt, args);
+    sendElog(src, pg.c.ERROR, fmt, args);
 }
 
 /// Use PostgreSQL elog to log a formatted message at `Error` level.
@@ -472,7 +478,7 @@ pub fn ErrorThrow(src: SourceLocation, comptime fmt: []const u8, args: anytype) 
 /// Warning:
 /// Using Error will cause Postgres to throw an error by using `longjump`.
 pub fn ErrorThrowWithCause(src: SourceLocation, cause: anyerror, comptime fmt: []const u8, args: anytype) void {
-    sendElogWithCause(src, pg.ERROR, cause, fmt, args);
+    sendElogWithCause(src, pg.c.ERROR, cause, fmt, args);
 }
 
 /// Use PostgreSQL elog to log a formatted message at `Error` level.
@@ -484,7 +490,7 @@ pub fn Error(src: SourceLocation, comptime fmt: []const u8, args: anytype) error
     var errctx = err.Context.init();
     defer errctx.pg_try_end();
     if (errctx.pg_try()) {
-        sendElog(src, pg.ERROR, fmt, args);
+        sendElog(src, pg.c.ERROR, fmt, args);
         unreachable;
     } else {
         return error.PGErrorStack;
@@ -499,7 +505,7 @@ pub fn ErrorWithCause(src: SourceLocation, cause: anyerror, comptime fmt: []cons
     var errctx = err.Context.init();
     defer errctx.pg_try_end();
     if (errctx.pg_try()) {
-        sendElogWithCause(src, pg.ERROR, cause, fmt, args);
+        sendElogWithCause(src, pg.c.ERROR, cause, fmt, args);
         unreachable;
     } else {
         return error.PGErrorStack;
@@ -509,7 +515,7 @@ pub fn ErrorWithCause(src: SourceLocation, cause: anyerror, comptime fmt: []cons
 /// Use PostgreSQL elog to log a formatted message at `Fatal` level.
 /// This will cause Postgres to kill the current process.
 pub fn Fatal(src: SourceLocation, comptime fmt: []const u8, args: anytype) void {
-    sendElog(src, pg.FATAL, fmt, args);
+    sendElog(src, pg.c.FATAL, fmt, args);
 }
 
 /// Use PostgreSQL elog to log a formatted message at `Fatal` level.
@@ -518,14 +524,14 @@ pub fn Fatal(src: SourceLocation, comptime fmt: []const u8, args: anytype) void 
 /// Append the error name to the error message or emit the top message from the
 /// error stack if cause == PGErrorStack.
 pub fn FatalWithCause(src: SourceLocation, cause: anyerror, comptime fmt: []const u8, args: anytype) void {
-    sendElogWithCause(src, pg.FATAL, cause, fmt, args);
+    sendElogWithCause(src, pg.c.FATAL, cause, fmt, args);
 }
 
 /// Use PostgreSQL elog to log a formatted message at `PANIC` level.
 ///
 /// This will cause Postgres to stop the cluster.
 pub fn Panic(src: SourceLocation, comptime fmt: []const u8, args: anytype) void {
-    sendElog(src, pg.PANIC, fmt, args);
+    sendElog(src, pg.c.PANIC, fmt, args);
 }
 
 /// Use PostgreSQL elog to log a formatted message at `PANIC` level.
@@ -535,12 +541,12 @@ pub fn Panic(src: SourceLocation, comptime fmt: []const u8, args: anytype) void 
 ///
 /// This will cause Postgres to stop the cluster.
 pub fn PanicWithCause(src: SourceLocation, cause: anyerror, comptime fmt: []const u8, args: anytype) void {
-    sendElogWithCause(src, pg.PANIC, cause, fmt, args);
+    sendElogWithCause(src, pg.c.PANIC, cause, fmt, args);
 }
 
 pub fn emitIfPGError(e: anyerror) bool {
     if (e == error.PGErrorStack) {
-        pg.EmitErrorReport();
+        pg.c.EmitErrorReport();
         return true;
     }
     return false;
@@ -566,12 +572,13 @@ fn sendElogWithCause(src: SourceLocation, comptime level: c_int, cause: anyerror
 
     var memctx = mem.getErrorContextThrowOOM();
     var buf = std.ArrayList(u8).initCapacity(memctx.allocator(), fmt.len + err_name.len + 20) catch unreachable;
-    buf.writer().print(fmt, args) catch unreachable;
-    buf.writer().writeAll(": ") catch unreachable;
-    buf.writer().writeAll(err_name) catch unreachable;
-    buf.writer().writeByte(0) catch unreachable;
+    const allocator = memctx.allocator();
+    buf.writer(allocator).print(fmt, args) catch unreachable;
+    buf.writer(allocator).writeAll(": ") catch unreachable;
+    buf.writer(allocator).writeAll(err_name) catch unreachable;
+    buf.writer(allocator).writeByte(0) catch unreachable;
 
-    _ = pg.errmsg("%s", buf.items[0 .. buf.items.len - 1 :0].ptr);
+    _ = pg.c.errmsg("%s", buf.items[0 .. buf.items.len - 1 :0].ptr);
 
     api.errfinish(src, .{ .allow_longjmp = true }) catch unreachable;
 }

@@ -8,38 +8,38 @@ const generated = @import("gen_node_tags");
 
 pub const Tag = generated.Tag;
 
-pub const List = collections.list.PointerListOf(pg.Node);
+pub const List = collections.list.PointerListOf(pg.c.Node);
 
 pub inline fn intVal(node: anytype) c_int {
-    const n = safeCastNode(pg.Integer, node) orelse {
+    const n = safeCastNode(pg.c.Integer, node) orelse {
         @panic("Expected Integer node");
     };
     return n.ival;
 }
 
 pub inline fn floatVal(node: anytype) f64 {
-    const n = safeCastNode(pg.Float, node) orelse {
+    const n = safeCastNode(pg.c.Float, node) orelse {
         @panic("Expected Float node");
     };
     return std.fmt.parseFloat(f64, std.mem.span(n.fval));
 }
 
 pub inline fn strVal(node: anytype) [:0]const u8 {
-    const n = safeCastNode(pg.String, node) orelse {
+    const n = safeCastNode(pg.c.String, node) orelse {
         @panic("Expected String node");
     };
     return std.mem.span(n.sval);
 }
 
 pub inline fn boolVal(node: anytype) bool {
-    const n = safeCastNode(pg.Boolean, node) orelse {
+    const n = safeCastNode(pg.c.Boolean, node) orelse {
         @panic("Expected Boolean node");
     };
     return n.boolval;
 }
 
 pub inline fn make(comptime T: type) *T {
-    const node: *pg.Node = @ptrCast(@alignCast(pg.palloc0fast(@sizeOf(T))));
+    const node: *pg.c.Node = @ptrCast(@alignCast(pg.palloc0fast(@sizeOf(T))));
     node.*.type = @intFromEnum(mustFindTag(T));
     return @ptrCast(@alignCast(node));
 }
@@ -90,8 +90,8 @@ pub inline fn safeCastNode(comptime T: type, node: anytype) ?*T {
     return castNode(T, node);
 }
 
-pub inline fn copy(node: anytype) *pg.Node {
-    const raw = pg.copyObjectImpl(node);
+pub inline fn copy(node: anytype) *pg.c.Node {
+    const raw = pg.c.copyObjectImpl(node);
     return @ptrCast(@alignCast(raw));
 }
 
@@ -99,7 +99,7 @@ pub inline fn copyTypedNode(node: anytype) @TypeOf(node) {
     return @ptrCast(@alignCast(copy(node)));
 }
 
-pub inline fn asNodePtr(node: anytype) *pg.Node {
+pub inline fn asNodePtr(node: anytype) *pg.c.Node {
     checkIsPotentialNodePtr(node);
     return @ptrCast(@alignCast(node));
 }
@@ -113,51 +113,51 @@ inline fn checkIsPotentialNodePtr(node: anytype) void {
 
 pub const TestSuite_Node = struct {
     pub fn testMakeAndTag() !void {
-        const node = make(pg.FdwRoutine);
+        const node = make(pg.c.FdwRoutine);
         try std.testing.expectEqual(tag(node), .FdwRoutine);
     }
 
     pub fn testCreate() !void {
-        const node = create(pg.Query{
-            .commandType = pg.CMD_SELECT,
+        const node = create(pg.c.Query{
+            .commandType = pg.c.CMD_SELECT,
         });
         try std.testing.expectEqual(tag(node), .Query);
-        try std.testing.expectEqual(node.*.commandType, pg.CMD_SELECT);
+        try std.testing.expectEqual(node.*.commandType, pg.c.CMD_SELECT);
     }
 
     pub fn testSetTag() !void {
-        const node = make(pg.Query);
+        const node = make(pg.c.Query);
         setTag(node, .FdwRoutine);
         try std.testing.expectEqual(tag(node), .FdwRoutine);
     }
 
     pub fn testIsA_Ok() !void {
-        const node = make(pg.Query);
+        const node = make(pg.c.Query);
         try std.testing.expect(isA(node, .Query));
     }
 
     pub fn testIsA_Fail() !void {
-        const node = make(pg.Query);
+        const node = make(pg.c.Query);
         try std.testing.expect(!isA(node, .FdwRoutine));
     }
 
     pub fn testCastNode() !void {
-        const node: *pg.Node = @ptrCast(@alignCast(make(pg.Query)));
-        const query: *pg.Query = castNode(pg.Query, node);
+        const node: *pg.c.Node = @ptrCast(@alignCast(make(pg.c.Query)));
+        const query: *pg.c.Query = castNode(pg.c.Query, node);
         try std.testing.expect(isA(query, .Query));
     }
 
     pub fn testSafeCast_Ok() !void {
-        const node = make(pg.Query);
-        const query = safeCastNode(pg.Query, node) orelse {
+        const node = make(pg.c.Query);
+        const query = safeCastNode(pg.c.Query, node) orelse {
             return error.UnexpectedCastFailure;
         };
         try std.testing.expect(isA(query, .Query));
     }
 
     pub fn testSafeCast_Fail() !void {
-        const node = make(pg.Query);
-        const fdw = safeCastNode(pg.FdwRoutine, node);
+        const node = make(pg.c.Query);
+        const fdw = safeCastNode(pg.c.FdwRoutine, node);
         try std.testing.expect(fdw == null);
     }
 };

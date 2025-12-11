@@ -10,11 +10,11 @@ pub const CustomBoolVariable = struct {
         short_desc: ?[:0]const u8 = null,
         long_desc: ?[:0]const u8 = null,
         initial_value: bool = false,
-        context: pg.GucContext = pg.PGC_USERSET,
+        context: pg.c.GucContext = pg.c.PGC_USERSET,
         flags: c_int = 0,
-        check_hook: pg.GucBoolCheckHook = null,
-        assign_hook: pg.GucBoolAssignHook = null,
-        show_hook: pg.GucShowHook = null,
+        check_hook: pg.c.GucBoolCheckHook = null,
+        assign_hook: pg.c.GucBoolAssignHook = null,
+        show_hook: pg.c.GucShowHook = null,
     };
 
     pub fn registerValue(options: Options) void {
@@ -27,7 +27,7 @@ pub const CustomBoolVariable = struct {
     }
 
     fn doRegister(value: ?*bool, options: Options) void {
-        pg.DefineCustomBoolVariable(
+        pg.c.DefineCustomBoolVariable(
             options.name,
             optSliceCPtr(options.short_desc),
             optSliceCPtr(options.long_desc),
@@ -52,11 +52,11 @@ pub const CustomIntVariable = struct {
         initial_value: ?c_int = 0,
         min_value: c_int = 0,
         max_value: c_int = std.math.maxInt(c_int),
-        context: pg.GucContext = pg.PGC_USERSET,
+        context: pg.c.GucContext = pg.c.PGC_USERSET,
         flags: c_int = 0,
-        check_hook: pg.GucIntCheckHook = null,
-        assign_hook: pg.GucIntAssignHook = null,
-        show_hook: pg.GucShowHook = null,
+        check_hook: pg.c.GucIntCheckHook = null,
+        assign_hook: pg.c.GucIntAssignHook = null,
+        show_hook: pg.c.GucShowHook = null,
     };
 
     pub fn registerValue(options: Options) void {
@@ -72,7 +72,7 @@ pub const CustomIntVariable = struct {
 
     fn doRegister(value: ?*c_int, options: Options) void {
         const init_value = if (value) |v| v.* else options.initial_value orelse 0;
-        pg.DefineCustomIntVariable(
+        pg.c.DefineCustomIntVariable(
             options.name,
             optSliceCPtr(options.short_desc),
             optSliceCPtr(options.long_desc),
@@ -97,7 +97,7 @@ pub const CustomStringVariable = struct {
         short_desc: ?[:0]const u8 = null,
         long_desc: ?[:0]const u8 = null,
         initial_value: ?[:0]const u8 = null,
-        context: pg.GucContext = pg.PGC_USERSET,
+        context: pg.c.GucContext = pg.c.PGC_USERSET,
         flags: c_int = 0,
     };
 
@@ -108,7 +108,7 @@ pub const CustomStringVariable = struct {
             self._value = v.ptr;
         }
 
-        pg.DefineCustomStringVariable(
+        pg.c.DefineCustomStringVariable(
             options.name,
             optSliceCPtr(options.short_desc),
             optSliceCPtr(options.long_desc),
@@ -144,15 +144,15 @@ pub const CustomIntOptions = struct {
     boot_value: c_int = 0,
     min_value: c_int = 0,
     max_value: c_int = std.math.maxInt(c_int),
-    context: pg.GucContext = pg.PGC_USERSET,
+    context: pg.c.GucContext = pg.c.PGC_USERSET,
     flags: c_int = 0,
-    check_hook: pg.GucIntCheckHook = null,
-    assign_hook: pg.GucIntAssignHook = null,
-    show_hook: pg.GucShowHook = null,
+    check_hook: pg.c.GucIntCheckHook = null,
+    assign_hook: pg.c.GucIntAssignHook = null,
+    show_hook: pg.c.GucShowHook = null,
 };
 
 pub fn defineCustomInt(options: CustomIntOptions) void {
-    pg.DefineCustomIntVariable(
+    pg.c.DefineCustomIntVariable(
         options.name,
         optSliceCPtr(options.short_desc),
         optSliceCPtr(options.long_desc),

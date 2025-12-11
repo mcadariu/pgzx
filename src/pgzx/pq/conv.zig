@@ -88,7 +88,7 @@ fn optconv(comptime C: type) type {
 }
 
 const boolconv = struct {
-    pub const OID = pg.BOOLOID;
+    pub const OID = pg.c.BOOLOID;
     pub const Type = bool;
 
     pub fn write(writer: anytype, value: bool) !void {
@@ -112,14 +112,14 @@ const boolconv = struct {
     }
 };
 
-const i8conv = intconv(i8, pg.INT2OID);
-const i16conv = intconv(i16, pg.INT2OID);
-const i32conv = intconv(i32, pg.INT4OID);
-const i64conv = intconv(i64, pg.INT8OID);
-const u8conv = intconv(u8, pg.INT2OID);
-const u16conv = intconv(u16, pg.INT4OID);
-const u32conv = intconv(u32, pg.INT8OID);
-fn intconv(comptime T: type, comptime oid: pg.Oid) type {
+const i8conv = intconv(i8, pg.c.INT2OID);
+const i16conv = intconv(i16, pg.c.INT2OID);
+const i32conv = intconv(i32, pg.c.INT4OID);
+const i64conv = intconv(i64, pg.c.INT8OID);
+const u8conv = intconv(u8, pg.c.INT2OID);
+const u16conv = intconv(u16, pg.c.INT4OID);
+const u32conv = intconv(u32, pg.c.INT8OID);
+fn intconv(comptime T: type, comptime oid: pg.c.Oid) type {
     return struct {
         pub const OID = oid;
         pub const Type = T;
@@ -137,9 +137,9 @@ fn intconv(comptime T: type, comptime oid: pg.Oid) type {
     };
 }
 
-const f32conv = floatconv(f32, pg.FLOAT4OID);
-const f64conv = floatconv(f64, pg.FLOAT8OID);
-fn floatconv(comptime T: type, comptime oid: pg.Oid) type {
+const f32conv = floatconv(f32, pg.c.FLOAT4OID);
+const f64conv = floatconv(f64, pg.c.FLOAT8OID);
+fn floatconv(comptime T: type, comptime oid: pg.c.Oid) type {
     return struct {
         pub const OID = oid;
         pub const Type = T;
@@ -158,7 +158,7 @@ fn floatconv(comptime T: type, comptime oid: pg.Oid) type {
 }
 
 const textconv = struct {
-    pub const OID = pg.TEXTOID;
+    pub const OID = pg.c.TEXTOID;
     pub const Type = []const u8;
 
     pub fn write(writer: anytype, value: []const u8) !void {
@@ -172,7 +172,7 @@ const textconv = struct {
 };
 
 const textzconv = struct {
-    pub const OID = pg.TEXTOID;
+    pub const OID = pg.c.TEXTOID;
     pub const Type = [:0]const u8;
 
     pub fn write(writer: anytype, value: [:0]const u8) !void {

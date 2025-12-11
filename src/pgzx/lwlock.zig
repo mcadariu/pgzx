@@ -10,10 +10,10 @@ const pg = @import("pgzx_pgsys");
 //
 // We use a function because the Zig compiler currently complains that it can
 // access the ID only at runtime.
-inline fn mainLock(id: usize) fn () *pg.LWLock {
+inline fn mainLock(id: usize) fn () *pg.c.LWLock {
     return struct {
-        fn call() *pg.LWLock {
-            return &pg.MainLWLockArray[id].lock;
+        fn call() *pg.c.LWLock {
+            return &pg.c.MainLWLockArray[id].lock;
         }
     }.call;
 }

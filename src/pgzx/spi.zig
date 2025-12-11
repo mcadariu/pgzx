@@ -7,24 +7,24 @@ const err = @import("err.zig");
 const datum = @import("datum.zig");
 
 pub fn connect() err.PGError!void {
-    const status = pg.SPI_connect();
-    if (status == pg.SPI_ERROR_CONNECT) {
+    const status = pg.c.SPI_connect();
+    if (status == pg.c.SPI_ERROR_CONNECT) {
         return err.PGError.SPIConnectFailed;
     }
 }
 
 pub fn connectNonAtomic() err.PGError!void {
-    const status = pg.SPI_connect_ext(pg.SPI_OPT_NONATOMIC);
+    const status = pg.c.SPI_connect_ext(pg.c.SPI_OPT_NONATOMIC);
     try checkStatus(status);
 }
 
 pub fn finish() void {
-    _ = pg.SPI_finish();
+    _ = pg.c.SPI_finish();
 }
 
 pub const Args = struct {
-    types: []const pg.Oid,
-    values: []const pg.NullableDatum,
+    types: []const pg.c.Oid,
+    values: []const pg.c.NullableDatum,
 
     pub fn has_nulls(self: *const Args) bool {
         for (self.values) |value| {
@@ -84,15 +84,15 @@ fn execImpl(sql: [:0]const u8, options: ExecOptions) SPIError!c_int {
             }
         };
 
-        const values: [*c]pg.Datum = blk: {
-            var buf = try allocator.alloc(pg.Datum, n);
+        const values: [*c]pg.c.Datum = blk: {
+            var buf = try allocator.alloc(pg.c.Datum, n);
             for (args.values, 0..) |arg, i| {
                 buf[i] = arg.value;
             }
             break :blk buf.ptr;
         };
 
-        const status = pg.SPI_execute_with_args(
+        const status = pg.c.SPI_execute_with_args(
             sql.ptr,
             @intCast(n),
             @constCast(args.types.ptr),
@@ -104,7 +104,7 @@ fn execImpl(sql: [:0]const u8, options: ExecOptions) SPIError!c_int {
         try checkStatus(status);
         return status;
     } else {
-        const status = pg.SPI_execute(sql.ptr, options.read_only, options.limit);
+        const status = pg.c.SPI_execute(sql.ptr, options.read_only, options.limit);
         try checkStatus(status);
         return status;
     }
@@ -209,7 +209,7 @@ pub const Rows = struct {
 
     pub fn deinit(self: *Rows) void {
         if (self.spi_frame.tuptable) |tt| {
-            pg.SPI_freetuptable(tt);
+            pg.c.SPI_freetuptable(tt);
         }
         self.row = -1;
     }
@@ -264,18 +264,18 @@ pub fn RowsOf(comptime T: type) type {
 // The SPI interface uses a
 const SPIFrame = struct {
     processed: u64,
-    tuptable: ?*pg.SPITupleTable,
+    tuptable: ?*pg.c.SPITupleTable,
 
     inline fn get() SPIFrame {
         return .{
-            .processed = pg.SPI_processed,
-            .tuptable = pg.SPI_tuptable,
+            .processed = pg.c.SPI_processed,
+            .tuptable = pg.c.SPI_tuptable,
         };
     }
 };
 
 pub fn convProcessed(comptime T: type, row: c_int, col: c_int) !T {
-    if (pg.SPI_processed <= row) {
+    if (pg.c.SPI_processed <= row) {
         return err.PGError.SPIInvalidRowIndex;
     }
     return convBinValue(T, SPIFrame.get(), row, col);
@@ -284,11 +284,11 @@ pub fn convProcessed(comptime T: type, row: c_int, col: c_int) !T {
 pub fn convBinValue(comptime T: type, frame: SPIFrame, row: usize, col: c_int) !T {
     // TODO: check index?
 
-    var nd: pg.NullableDatum = undefined;
+    var nd: pg.c.NullableDatum = undefined;
     const table = frame.tuptable.?;
     const desc = table.*.tupdesc;
-    nd.value = pg.SPI_getbinval(table.*.vals[row], desc, col, @ptrCast(&nd.isnull));
-    try checkStatus(pg.SPI_result);
+    nd.value = pg.c.SPI_getbinval(table.*.vals[row], desc, col, @ptrCast(&nd.isnull));
+    try checkStatus(pg.c.SPI_result);
     const attr_desc = &desc.*.attrs()[@intCast(col - 1)];
     const oid = attr_desc.atttypid;
     return try datum.fromNullableDatumWithOID(T, nd, oid);
@@ -296,13 +296,13 @@ pub fn convBinValue(comptime T: type, frame: SPIFrame, row: usize, col: c_int) !
 
 fn checkStatus(st: c_int) err.PGError!void {
     switch (st) {
-        pg.SPI_ERROR_CONNECT => return err.PGError.SPIConnectFailed,
-        pg.SPI_ERROR_ARGUMENT => return err.PGError.SPIArgument,
-        pg.SPI_ERROR_COPY => return err.PGError.SPICopy,
-        pg.SPI_ERROR_TRANSACTION => return err.PGError.SPITransaction,
-        pg.SPI_ERROR_OPUNKNOWN => return err.PGError.SPIOpUnknown,
-        pg.SPI_ERROR_UNCONNECTED => return err.PGError.SPIUnconnected,
-        pg.SPI_ERROR_NOATTRIBUTE => return err.PGError.SPINoAttribute,
+        pg.c.SPI_ERROR_CONNECT => return err.PGError.SPIConnectFailed,
+        pg.c.SPI_ERROR_ARGUMENT => return err.PGError.SPIArgument,
+        pg.c.SPI_ERROR_COPY => return err.PGError.SPICopy,
+        pg.c.SPI_ERROR_TRANSACTION => return err.PGError.SPITransaction,
+        pg.c.SPI_ERROR_OPUNKNOWN => return err.PGError.SPIOpUnknown,
+        pg.c.SPI_ERROR_UNCONNECTED => return err.PGError.SPIUnconnected,
+        pg.c.SPI_ERROR_NOATTRIBUTE => return err.PGError.SPINoAttribute,
         else => {
             if (st < 0) {
                 return err.PGError.SPIError;
