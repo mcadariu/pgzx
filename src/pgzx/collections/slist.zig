@@ -13,8 +13,6 @@ pub fn SList(comptime T: type, comptime node_field: std.meta.FieldEnum(T)) type 
         const Self = @This();
         const Iterator = SListIter(T, node_field);
 
-        // In Zig 0.15+, usingnamespace in struct bodies was removed.
-        // Instead we use inline functions that delegate to the meta helpers.
         const meta = SListMeta(T, node_field);
 
         head: pg.c.slist_head,

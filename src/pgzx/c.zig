@@ -199,20 +199,10 @@ const includes = @cImport({
     @cInclude("libpqsrv.h");
 });
 
-// In Zig 0.15+, `usingnamespace` was completely removed with no direct replacement.
-// All C imports are now accessible through this module by re-exporting individual
-// declarations. Since we can't enumerate @cImport symbols at comptime, we simply
-// re-export the entire cImport struct, and code must be updated to reflect this.
-//
-// Migration: Code using `const pg = @import("pgzx_pgsys");` with `pg.c.SomeSymbol`
-// continues to work because we make this module transparently forward to includes.
-
 // Export all includes inline at the module root level using comptime.
 // This makes pg.c.X forward to includes.X automatically.
 pub const c = includes;
 
-// Also make common symbols available at the root for compatibility
-// We'll add specific re-exports as needed when we find what's actually used
 test {
     @import("std").testing.refAllDecls(@This());
 }
