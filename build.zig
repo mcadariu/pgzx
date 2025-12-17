@@ -24,6 +24,21 @@ pub fn build(b: *std.Build) void {
 
     // pgzx_pgsys module: C bindings to Postgres
     const pgzx_pgsys = blk: {
+        const translate_c = b.addTranslateC(.{
+            .root_source_file = b.path("./src/pgzx/c/include/headers.h"),
+            .target = target,
+            .optimize = optimize,
+        });
+
+        translate_c.addIncludePath(b.path("./src/pgzx/c/include/"));
+
+        translate_c.addIncludePath(.{
+            .cwd_relative = pgbuild.getIncludeServerDir(),
+        });
+        translate_c.addIncludePath(.{
+            .cwd_relative = pgbuild.getIncludeDir(),
+        });
+
         const module = b.addModule("pgzx_pgsys", .{
             .root_source_file = b.path("./src/pgzx/c.zig"),
             .target = target,
@@ -55,6 +70,9 @@ pub fn build(b: *std.Build) void {
             },
         });
         module.linkSystemLibrary("pq", .{});
+
+        // Import the translated C headers
+        module.addImport("c_translated", translate_c.createModule());
 
         break :blk module;
     };

@@ -60,10 +60,10 @@ pub fn main() !void {
     }
 
     // 2. Create `Tag enum` with all known node tags.
-    try out.writeAll("pub const Tag = enum (pg.NodeTag) {\n");
+    try out.writeAll("pub const Tag = enum (pg.c.NodeTag) {\n");
     for (node_tags.items) |tag| {
         const name = tag[2..];
-        const line = try std.fmt.allocPrint(arena, "{s} = pg.{s},\n", .{ name, tag });
+        const line = try std.fmt.allocPrint(arena, "{s} = pg.c.{s},\n", .{ name, tag });
         try out.writeAll(line);
     }
     try out.writeAll("};\n\n");
@@ -76,7 +76,7 @@ pub fn main() !void {
 
         const typeName = tag[2..];
         try out.writeAll(".{");
-        const line = try std.fmt.allocPrint(arena, "pg.{s}, pg.{s}", .{ tag, typeName });
+        const line = try std.fmt.allocPrint(arena, "pg.c.{s}, pg.c.{s}", .{ tag, typeName });
         try out.writeAll(line);
         try out.writeAll("},\n");
     }

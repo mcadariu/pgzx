@@ -27,7 +27,7 @@
     nixpkgs,
     ...
   }: let
-    zig-stable = "0.14.0";
+    zig-stable = "0.15.2";
 
     zig-overlay = _final: prev: let
       orig = inputs.zig-overlay.packages.${prev.system};

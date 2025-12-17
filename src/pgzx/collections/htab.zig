@@ -151,11 +151,11 @@ pub fn HTab(comptime Context: type) type {
         }
 
         pub fn getRawEntryPointer(self: Self, key: ?*const anyopaque, found: ?*bool) ?*anyopaque {
-            return pg.hash_search(self.htab, key, pg.c.HASH_FIND, found);
+            return pg.c.hash_search(self.htab, key, pg.c.HASH_FIND, found);
         }
 
         pub fn getOrPutRawEntryPointer(self: Self, key: ?*const anyopaque, found: ?*bool) error{OutOfMemory}!?*anyopaque {
-            const p = pg.hash_search(self.htab, key, pg.c.HASH_ENTER_NULL, found);
+            const p = pg.c.hash_search(self.htab, key, pg.c.HASH_ENTER_NULL, found);
             if (p == null) {
                 return error.OutOfMemory;
             }
@@ -192,7 +192,7 @@ pub fn HTab(comptime Context: type) type {
 
         pub fn remove(self: Self, key: ConstKeyPtr) bool {
             var found: bool = undefined;
-            _ = pg.hash_search(self.htab, Self.keyPtr(key), pg.c.HASH_REMOVE, &found);
+            _ = pg.c.hash_search(self.htab, Self.keyPtr(key), pg.c.HASH_REMOVE, &found);
             return found;
         }
 
