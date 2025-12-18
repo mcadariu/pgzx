@@ -6,7 +6,7 @@
 const std = @import("std");
 
 // Export common set of postgres headers.
-pub const pg = @import("pgzx_pgsys");
+pub const pg = @import("c_translated");
 pub const c = pg; // keep for backwards compatibility
 
 // Utility functions for working with the PostgreSQL C API.

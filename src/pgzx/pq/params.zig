@@ -1,6 +1,6 @@
 // const std = @import("std");
 // const conv = @import("conv.zig");
-// const c = @import("pgzx_pgsys");
+// const c = @import("c_translated");
 //
 // pub fn buildParams(allocator: std.mem.Allocator, params: anytype) !Params {
 //     return Builder.new(allocator).build(params);

@@ -1,5 +1,5 @@
 const std = @import("std");
-const pg = @import("pgzx_pgsys");
+const pg = @import("c_translated");
 
 const err = @import("../err.zig");
 const datum = @import("../datum.zig");
@@ -10,7 +10,7 @@ pub fn Arg(comptime T: type, comptime argNum: u32) type {
         const Self = @This();
 
         /// Reads the argument from the PostgreSQL function call information.
-        pub inline fn read(fcinfo: pg.c.FunctionCallInfo) !T {
+        pub inline fn read(fcinfo: pg.FunctionCallInfo) !T {
             return readArg(T, fcinfo, argNum);
         }
 
@@ -33,7 +33,7 @@ pub fn ArgType(comptime T: type) type {
         }
 
         pub inline fn isCallInfo() bool {
-            return T == pg.c.FunctionCallInfo;
+            return T == pg.FunctionCallInfo;
         }
 
         pub inline fn consumesArgument() bool {
@@ -41,55 +41,55 @@ pub fn ArgType(comptime T: type) type {
         }
 
         /// Reads the indexed function argument.
-        pub inline fn read(fcinfo: pg.c.FunctionCallInfo, argNum: u32) !T {
+        pub inline fn read(fcinfo: pg.FunctionCallInfo, argNum: u32) !T {
             return readArg(T, fcinfo, argNum);
         }
     };
 }
 
 inline fn readArgType(comptime T: type) type {
-    if (T == pg.c.FunctionCallInfo) {
+    if (T == pg.FunctionCallInfo) {
         return T;
     }
     return datum.findConv(T).Type;
 }
 
 /// Reads a postgres function call argument as a given type.
-fn readArg(comptime T: type, fcinfo: pg.c.FunctionCallInfo, argNum: u32) !readArgType(T) {
-    if (T == pg.c.FunctionCallInfo) {
+fn readArg(comptime T: type, fcinfo: pg.FunctionCallInfo, argNum: u32) !readArgType(T) {
+    if (T == pg.FunctionCallInfo) {
         return fcinfo;
     }
     const converter = comptime datum.findConv(T);
-    const oid = try err.wrap(pg.c.get_fn_expr_argtype, .{ fcinfo.*.flinfo, @as(c_int, @intCast(argNum)) });
+    const oid = try err.wrap(pg.get_fn_expr_argtype, .{ fcinfo.*.flinfo, @as(c_int, @intCast(argNum)) });
     const ndatum = try mustGetArgNullable(fcinfo, argNum);
     return converter.fromNullableDatumWithOID(ndatum, oid);
 }
 
-fn readOptionalArg(comptime T: type, fcinfo: pg.c.FunctionCallInfo, argNum: u32) !?T {
+fn readOptionalArg(comptime T: type, fcinfo: pg.FunctionCallInfo, argNum: u32) !?T {
     if (isNullArg(fcinfo, argNum)) {
         return null;
     }
     return readArg(T, fcinfo, argNum);
 }
 
-pub inline fn mustGetArgNullable(fcinfo: pg.c.FunctionCallInfo, argNum: u32) !pg.c.NullableDatum {
+pub inline fn mustGetArgNullable(fcinfo: pg.FunctionCallInfo, argNum: u32) !pg.NullableDatum {
     if (fcinfo.*.nargs < argNum) {
         return error.NotEnoughArguments;
     }
     return fcinfo.*.args()[argNum];
 }
 
-pub inline fn mustGetArgDatum(fcinfo: pg.c.FunctionCallInfo, argNum: u32) !pg.c.Datum {
+pub inline fn mustGetArgDatum(fcinfo: pg.FunctionCallInfo, argNum: u32) !pg.Datum {
     if (isNullArg(fcinfo, argNum)) {
         return error.ArgumentIsNull;
     }
     return getArgDatum(fcinfo, argNum);
 }
 
-pub inline fn getArgDatum(fcinfo: pg.c.FunctionCallInfo, argNum: u32) pg.c.Datum {
+pub inline fn getArgDatum(fcinfo: pg.FunctionCallInfo, argNum: u32) pg.Datum {
     return fcinfo.*.args()[argNum].value;
 }
 
-pub inline fn isNullArg(fcinfo: pg.c.FunctionCallInfo, argNum: u32) bool {
+pub inline fn isNullArg(fcinfo: pg.FunctionCallInfo, argNum: u32) bool {
     return fcinfo.*.args()[argNum].isnull;
 }

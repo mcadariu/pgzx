@@ -6,7 +6,7 @@
 
 const std = @import("std");
 
-const pg = @import("pgzx_pgsys");
+const pg = @import("c_translated");
 
 const err = @import("../err.zig");
 const meta = @import("../meta.zig");
@@ -15,12 +15,12 @@ const meta = @import("../meta.zig");
 const HashValueFunc = union(enum) {
     Strings,
     Blobs,
-    Func: pg.c.HashValueFunc,
+    Func: pg.HashValueFunc,
 };
 
 const DirConfig = struct {
     init_size: isize, // (initial) directory size
-    max_dsize: isize = pg.c.NO_MAX_DSIZE, // limit to dsize if dir size is limited
+    max_dsize: isize = pg.NO_MAX_DSIZE, // limit to dsize if dir size is limited
 };
 
 /// HTab is a type safe wrapper around the Postgres HTAB hash table API.
@@ -28,7 +28,7 @@ const DirConfig = struct {
 /// Initialize the `keysize` to match the field size of your Entry's key type.
 pub fn HTab(comptime Context: type) type {
     return struct {
-        htab: *pg.c.HTAB,
+        htab: *pg.HTAB,
 
         pub const Entry = Context.Entry;
         pub const Key = Context.Key;
@@ -54,23 +54,23 @@ pub fn HTab(comptime Context: type) type {
             segment_size: ?usize = null, // # entries in a segment
             dir: ?DirConfig = null, // directory size and max size
             hash: HashValueFunc = Context.DefaultHash, // hash function
-            match: pg.c.HashCompareFunc = null, // key comparison function
-            keycopy: pg.c.HashCopyFunc = null, // key copying function
-            alloc: pg.c.HashAllocFunc = null, // memory allocator
-            memctx: pg.c.MemoryContext = null, // memory context to use for allocations
+            match: pg.HashCompareFunc = null, // key comparison function
+            keycopy: pg.HashCopyFunc = null, // key copying function
+            alloc: pg.HashAllocFunc = null, // memory allocator
+            memctx: pg.MemoryContext = null, // memory context to use for allocations
 
             pub fn getSharedSize(self: Options) usize {
                 const hctl = self.initHashCtl();
                 const flags = self.initFlags();
-                return pg.c.hash_get_shared_size(&hctl, flags);
+                return pg.hash_get_shared_size(&hctl, flags);
             }
 
-            pub fn initHashCtl(self: Options) pg.c.HASHCTL {
+            pub fn initHashCtl(self: Options) pg.HASHCTL {
                 return .{
                     .num_partitions = @intCast(self.num_partitions orelse 0),
                     .ssize = @intCast(self.segment_size orelse 0),
                     .dsize = @intCast(if (self.dir) |d| d.init_size else 0),
-                    .max_dsize = @intCast(if (self.dir) |d| d.max_dsize else pg.c.NO_MAX_DSIZE),
+                    .max_dsize = @intCast(if (self.dir) |d| d.max_dsize else pg.NO_MAX_DSIZE),
                     .keysize = @intCast(if (self.keysize) |k| k else Context.keySize()),
                     .entrysize = @intCast(if (self.entrysize) |e| e else Context.entrySize()),
                     .hash = if (self.hash == .Func) self.hash.Func else null,
@@ -83,19 +83,19 @@ pub fn HTab(comptime Context: type) type {
             }
 
             pub fn initFlags(self: Options) c_int {
-                var flags: c_int = pg.c.HASH_ELEM;
-                flags |= if (self.num_partitions != null) pg.c.HASH_PARTITION else 0;
-                flags |= if (self.segment_size != null) pg.c.HASH_SEGMENT else 0;
-                flags |= if (self.dir != null) pg.c.HASH_DIRSIZE else 0;
+                var flags: c_int = pg.HASH_ELEM;
+                flags |= if (self.num_partitions != null) pg.HASH_PARTITION else 0;
+                flags |= if (self.segment_size != null) pg.HASH_SEGMENT else 0;
+                flags |= if (self.dir != null) pg.HASH_DIRSIZE else 0;
                 flags |= switch (self.hash) {
-                    .Strings => pg.c.HASH_STRINGS,
-                    .Blobs => pg.c.HASH_BLOBS,
-                    .Func => pg.c.HASH_FUNCTION,
+                    .Strings => pg.HASH_STRINGS,
+                    .Blobs => pg.HASH_BLOBS,
+                    .Func => pg.HASH_FUNCTION,
                 };
-                flags |= if (self.match != null) pg.c.HASH_COMPARE else 0;
-                flags |= if (self.keycopy != null) pg.c.HASH_KEYCOPY else 0;
-                flags |= if (self.alloc != null) pg.c.HASH_ALLOC else 0;
-                flags |= if (self.memctx != null) pg.c.HASH_CONTEXT else 0;
+                flags |= if (self.match != null) pg.HASH_COMPARE else 0;
+                flags |= if (self.keycopy != null) pg.HASH_KEYCOPY else 0;
+                flags |= if (self.alloc != null) pg.HASH_ALLOC else 0;
+                flags |= if (self.memctx != null) pg.HASH_CONTEXT else 0;
                 return flags;
             }
         };
@@ -104,7 +104,7 @@ pub fn HTab(comptime Context: type) type {
             const hctl = options.initHashCtl();
             const flags = options.initFlags();
 
-            const created = try err.wrap(pg.c.hash_create, .{ name, @as(c_long, @intCast(nelem)), &hctl, flags });
+            const created = try err.wrap(pg.hash_create, .{ name, @as(c_long, @intCast(nelem)), &hctl, flags });
             return Self.initFrom(created.?);
         }
 
@@ -114,7 +114,7 @@ pub fn HTab(comptime Context: type) type {
         pub inline fn initShmem(name: [:0]const u8, init_size: usize, max_size: usize, options: Options) !Self {
             const hctl = options.initHashCtl();
             const flags = options.initFlags();
-            const created = try err.wrap(pg.c.ShmemInitHash, .{
+            const created = try err.wrap(pg.ShmemInitHash, .{
                 name,
                 @as(c_long, @intCast(init_size)),
                 @as(c_long, @intCast(max_size)),
@@ -125,37 +125,37 @@ pub fn HTab(comptime Context: type) type {
         }
 
         // Initialize from an existing hash table pointer.
-        pub inline fn initFrom(htable: *pg.c.HTAB) Self {
+        pub inline fn initFrom(htable: *pg.HTAB) Self {
             return .{ .htab = htable };
         }
 
         pub inline fn deinit(self: Self) void {
-            pg.c.hash_destroy(self.htab);
+            pg.hash_destroy(self.htab);
         }
 
-        pub fn asPtr(self: Self) *pg.c.HTAB {
+        pub fn asPtr(self: Self) *pg.HTAB {
             return self.htab;
         }
 
         pub fn freeze(self: Self) void {
-            pg.c.hash_freeze(self.htab);
+            pg.hash_freeze(self.htab);
         }
 
         /// Compute the hash value for a given key.
         pub fn getHashValue(self: Self, key: ConstKeyPtr) u32 {
-            return pg.c.get_hash_value(self.htab, key);
+            return pg.get_hash_value(self.htab, key);
         }
 
         pub fn count(self: Self) usize {
-            return @intCast(pg.c.hash_get_num_entries(self.htab));
+            return @intCast(pg.hash_get_num_entries(self.htab));
         }
 
         pub fn getRawEntryPointer(self: Self, key: ?*const anyopaque, found: ?*bool) ?*anyopaque {
-            return pg.c.hash_search(self.htab, key, pg.c.HASH_FIND, found);
+            return pg.hash_search(self.htab, key, pg.HASH_FIND, found);
         }
 
         pub fn getOrPutRawEntryPointer(self: Self, key: ?*const anyopaque, found: ?*bool) error{OutOfMemory}!?*anyopaque {
-            const p = pg.c.hash_search(self.htab, key, pg.c.HASH_ENTER_NULL, found);
+            const p = pg.hash_search(self.htab, key, pg.HASH_ENTER_NULL, found);
             if (p == null) {
                 return error.OutOfMemory;
             }
@@ -192,7 +192,7 @@ pub fn HTab(comptime Context: type) type {
 
         pub fn remove(self: Self, key: ConstKeyPtr) bool {
             var found: bool = undefined;
-            _ = pg.c.hash_search(self.htab, Self.keyPtr(key), pg.c.HASH_REMOVE, &found);
+            _ = pg.hash_search(self.htab, Self.keyPtr(key), pg.HASH_REMOVE, &found);
             return found;
         }
 
@@ -246,11 +246,11 @@ pub fn HTab(comptime Context: type) type {
 // In case the iteration is not full exhausted, it should be terminated with `term`.
 pub fn HTabIter(comptime Context: type) type {
     return struct {
-        status: pg.c.HASH_SEQ_STATUS,
+        status: pg.HASH_SEQ_STATUS,
 
         const Self = @This();
 
-        pub fn init(htab: *pg.c.HTAB) Self {
+        pub fn init(htab: *pg.HTAB) Self {
             // SAFETY:
             //   The status type is initialized by the hash_seq_init function only.
             //   It only holds a pointer into HTAB but is not self referential
@@ -258,8 +258,8 @@ pub fn HTabIter(comptime Context: type) type {
             //
             //   It is safe to move the 'status', but it SHOULD NOT be copied.
             //   If the hash table is not frozen Postgres keeps track
-            var status: pg.c.HASH_SEQ_STATUS = undefined;
-            pg.c.hash_seq_init(&status, htab);
+            var status: pg.HASH_SEQ_STATUS = undefined;
+            pg.hash_seq_init(&status, htab);
             return .{ .status = status };
         }
 
@@ -272,7 +272,7 @@ pub fn HTabIter(comptime Context: type) type {
         // scans in Postgres, which eventually resuls in an error being thrown
         // either now, or by some other iteration.
         pub fn term(self: *Self) void {
-            pg.c.hash_seq_term(&self.status);
+            pg.hash_seq_term(&self.status);
         }
 
         // Get the pointer to the next entry in the hash table.
@@ -280,7 +280,7 @@ pub fn HTabIter(comptime Context: type) type {
         // Returns null if the iteration is done. The iterator is automatically
         // terminated in this case and one must not use the `term` method.
         pub fn next(self: *Self) ?*Context.Entry {
-            const p = pg.c.hash_seq_search(&self.status);
+            const p = pg.hash_seq_search(&self.status);
             if (p == null) {
                 return null;
             }
@@ -295,7 +295,7 @@ pub fn HTabValuesIter(comptime Context: type) type {
 
         pub const Self = @This();
 
-        pub fn init(htab: *pg.c.HTAB) Self {
+        pub fn init(htab: *pg.HTAB) Self {
             return .{ .iter = HTabIter(Context).init(htab) };
         }
 
@@ -311,7 +311,7 @@ pub fn HTabValuesIter(comptime Context: type) type {
 }
 
 pub const StringKeyOptions = struct {
-    max_str_len: usize = pg.c.NAMEDATALEN,
+    max_str_len: usize = pg.NAMEDATALEN,
 };
 
 // Create a hash table with string keys. The key is stored in a fixed size array in the hash table entry. Use `max_str_len` to configure the maximum supported string length.
@@ -502,7 +502,7 @@ pub const TestSuite_HTab = struct {
                 // std.log.debug("strcmp: a=({*})'{s}', b='{s}', sz={}", .{ a, str_a, str_b, sz });
                 // std.log.debug("strcmp: a={any}, b={any}", .{ str_a, str_b });
 
-                return pg.c.strncmp(str_a, str_b, sz);
+                return pg.strncmp(str_a, str_b, sz);
             }
 
             fn strcpy(to: ?*anyopaque, from: ?*const anyopaque, sz: usize) callconv(.c) ?*anyopaque {
@@ -512,7 +512,7 @@ pub const TestSuite_HTab = struct {
                 // const str_from = std.mem.span(char_ptr_from);
                 // std.log.debug("strcpy:  to={*}, from='{s}', sz={}", .{ to, str_from, sz });
 
-                _ = pg.c.strlcpy(char_ptr_to, char_ptr_from, @intCast(sz));
+                _ = pg.strlcpy(char_ptr_to, char_ptr_from, @intCast(sz));
                 return to;
             }
         };

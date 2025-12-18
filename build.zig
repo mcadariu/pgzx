@@ -22,8 +22,8 @@ pub fn build(b: *std.Build) void {
         .unit = b.step("unit", "Run pgzx unit tests"),
     };
 
-    // pgzx_pgsys module: C bindings to Postgres
-    const pgzx_pgsys = blk: {
+    // c_translated module: C bindings to Postgres
+    const c_translated = blk: {
         const translate_c = b.addTranslateC(.{
             .root_source_file = b.path("./src/pgzx/c/include/headers.h"),
             .target = target,
@@ -39,11 +39,7 @@ pub fn build(b: *std.Build) void {
             .cwd_relative = pgbuild.getIncludeDir(),
         });
 
-        const module = b.addModule("pgzx_pgsys", .{
-            .root_source_file = b.path("./src/pgzx/c.zig"),
-            .target = target,
-            .optimize = optimize,
-        });
+        const module = translate_c.createModule();
 
         // Internal C headers
         module.addIncludePath(b.path("./src/pgzx/c/include/"));
@@ -71,8 +67,7 @@ pub fn build(b: *std.Build) void {
         });
         module.linkSystemLibrary("pq", .{});
 
-        // Import the translated C headers
-        module.addImport("c_translated", translate_c.createModule());
+        b.modules.put(b.dupe("c_translated"), module) catch @panic("OOM");
 
         break :blk module;
     };
@@ -98,18 +93,18 @@ pub fn build(b: *std.Build) void {
     };
 
     // pgzx: main project module.
-    // This module re-exports pgzx_pgsys, other generated modules, and utility functions.
+    // This module re-exports c_translated, other generated modules, and utility functions.
     const pgzx = blk: {
         const module = b.addModule("pgzx", .{
             .root_source_file = b.path("./src/pgzx.zig"),
             .target = target,
             .optimize = optimize,
         });
-        module.addImport("pgzx_pgsys", pgzx_pgsys);
+        module.addImport("c_translated", c_translated);
         module.addAnonymousImport("gen_node_tags", .{
             .root_source_file = node_tags_src,
             .imports = &.{
-                .{ .name = "pgzx_pgsys", .module = pgzx_pgsys },
+                .{ .name = "c_translated", .module = c_translated },
             },
         });
 
@@ -167,12 +162,12 @@ pub fn build(b: *std.Build) void {
 
         tests.lib.root_module.addIncludePath(b.path("./src/pgzx/c/include/"));
 
-        tests.lib.root_module.addImport("pgzx_pgsys", pgzx_pgsys);
+        tests.lib.root_module.addImport("c_translated", c_translated);
         tests.lib.root_module.addImport("pgzx", pgzx);
         tests.lib.root_module.addAnonymousImport("gen_node_tags", .{
             .root_source_file = node_tags_src,
             .imports = &.{
-                .{ .name = "pgzx_pgsys", .module = pgzx_pgsys },
+                .{ .name = "c_translated", .module = c_translated },
             },
         });
 

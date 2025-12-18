@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub const pg = @import("pgzx_pgsys");
+pub const pg = @import("c_translated");
 
 pub const err = @import("err.zig");
 pub const elog = @import("elog.zig");
@@ -92,7 +92,7 @@ fn runTestSuite(T: anytype) !u32 {
 
 fn runTestSuiteTest(fun: anytype) !void {
     // create a memory context for the test
-    var test_memctx = try mem.createTempAllocSet("test_memory_context", .{ .parent = pg.c.CurrentMemoryContext });
+    var test_memctx = try mem.createTempAllocSet("test_memory_context", .{ .parent = pg.CurrentMemoryContext });
     defer test_memctx.deinit();
 
     // capture PG errors in case some test does throw a PG error that we don't want to leak:

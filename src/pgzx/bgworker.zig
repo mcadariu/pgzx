@@ -7,16 +7,16 @@ const elog = @import("elog.zig");
 const err = @import("err.zig");
 const lwlock = @import("lwlock.zig");
 
-pub const BackgroundWorker = pg.c.BackgroundWorker;
+pub const BackgroundWorker = pg.BackgroundWorker;
 
 pub const WorkerOptions = struct {
     flags: c_int,
     worker_type: ?[]const u8 = null,
-    start_time: pg.c.BgWorkerStartTime = pg.c.BgWorkerStart_RecoveryFinished,
+    start_time: pg.BgWorkerStartTime = pg.BgWorkerStart_RecoveryFinished,
     restart_time: c_int = 1,
-    main_arg: pg.c.Datum = 0,
+    main_arg: pg.Datum = 0,
     extra: ?[]const u8 = null,
-    notify_pid: pg.c.pid_t = 0,
+    notify_pid: pg.pid_t = 0,
 };
 
 pub fn register(
@@ -26,7 +26,7 @@ pub fn register(
     options: WorkerOptions,
 ) void {
     var bw = initBackgroundWorker(name, library_name, function_name, options);
-    pg.c.RegisterBackgroundWorker(&bw);
+    pg.RegisterBackgroundWorker(&bw);
 }
 
 pub fn registerDynamic(
@@ -34,7 +34,7 @@ pub fn registerDynamic(
     comptime library_name: []const u8,
     comptime function_name: []const u8,
     options: WorkerOptions,
-) !*pg.c.BackgroundWorkerHandle {
+) !*pg.BackgroundWorkerHandle {
     std.log.debug("init background worker: {s} {s} {s}", .{
         name,
         library_name,
@@ -48,8 +48,8 @@ pub fn registerDynamic(
         library_name,
         function_name,
     });
-    var handle: ?*pg.c.BackgroundWorkerHandle = null;
-    const ok = pg.c.RegisterDynamicBackgroundWorker(&bw, &handle);
+    var handle: ?*pg.BackgroundWorkerHandle = null;
+    const ok = pg.RegisterDynamicBackgroundWorker(&bw, &handle);
     if (!ok) {
         return err.PGError.FailStartBackgroundWorker;
     }
@@ -67,8 +67,8 @@ fn initBackgroundWorker(
     comptime library_name: []const u8,
     comptime function_name: []const u8,
     options: WorkerOptions,
-) pg.c.BackgroundWorker {
-    var bw = std.mem.zeroInit(pg.c.BackgroundWorker, .{
+) pg.BackgroundWorker {
+    var bw = std.mem.zeroInit(pg.BackgroundWorker, .{
         .bgw_flags = options.flags,
         .bgw_start_time = options.start_time,
         .bgw_restart_time = options.restart_time,
@@ -111,8 +111,8 @@ pub inline fn sigFlagHandler(sig: *pgzx.intr.Signal) fn (c_int) callconv(.c) voi
 pub fn finalizeSignal(arg: c_int) void {
     _ = arg;
     const save_errno = std.c._errno().*;
-    if (pg.c.MyProc != null) {
-        pg.c.SetLatch(&pg.c.MyProc.*.procLatch);
+    if (pg.MyProc != null) {
+        pg.SetLatch(&pg.MyProc.*.procLatch);
     }
     std.c._errno().* = save_errno;
 }

@@ -1,16 +1,16 @@
 const std = @import("std");
 
-const pg = @import("pgzx_pgsys");
+const pg = @import("c_translated");
 
 const elog = @import("elog.zig");
 const datum = @import("datum.zig");
 const meta = @import("meta.zig");
 
 pub const args = @import("fmgr/args.zig");
-pub const varatt = pg.c.varatt;
+pub const varatt = pg.varatt;
 
-pub const Pg_magic_struct = pg.c.Pg_magic_struct;
-pub const Pg_finfo_record = pg.c.Pg_finfo_record;
+pub const Pg_magic_struct = pg.Pg_magic_struct;
+pub const Pg_finfo_record = pg.Pg_finfo_record;
 
 pub const MAGIC = [*c]const Pg_magic_struct;
 pub const FN_INFO_V1 = [*c]const Pg_finfo_record;
@@ -19,11 +19,11 @@ pub const FN_INFO_V1 = [*c]const Pg_finfo_record;
 /// This value must be returned by a function named `Pg_magic_func`.
 pub const PG_MAGIC = Pg_magic_struct{
     .len = @bitCast(@as(c_uint, @truncate(@sizeOf(Pg_magic_struct)))),
-    .version = @divTrunc(pg.c.PG_VERSION_NUM, @as(c_int, 100)),
-    .funcmaxargs = pg.c.FUNC_MAX_ARGS,
-    .indexmaxkeys = pg.c.INDEX_MAX_KEYS,
-    .namedatalen = pg.c.NAMEDATALEN,
-    .float8byval = pg.c.FLOAT8PASSBYVAL,
+    .version = @divTrunc(pg.PG_VERSION_NUM, @as(c_int, 100)),
+    .funcmaxargs = pg.FUNC_MAX_ARGS,
+    .indexmaxkeys = pg.INDEX_MAX_KEYS,
+    .namedatalen = pg.NAMEDATALEN,
+    .float8byval = pg.FLOAT8PASSBYVAL,
     .abi_extra = [32]u8{ 'P', 'o', 's', 't', 'g', 'r', 'e', 'S', 'Q', 'L', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 };
 
@@ -37,7 +37,7 @@ pub const PG_FINFO_V1_RECORD = Pg_finfo_record{
 /// We do not export the symbol to postgres. If you want to indicate that you have a loadable module
 /// use `Pg_magic_func` like so in your module:
 ///
-///   pub export fn Pg_magic_func() [*c]const pg.c.Pg_magic_struct {
+///   pub export fn Pg_magic_func() [*c]const pg.Pg_magic_struct {
 ///     return pgzx.Pg_magic_func();
 ///   }
 ///
@@ -84,7 +84,7 @@ pub inline fn PG_EXPORT(comptime mod: type) void {
 inline fn genFnCall(comptime f: anytype) type {
     return struct {
         const function: @TypeOf(f) = f;
-        fn call(fcinfo: pg.c.FunctionCallInfo) callconv(.c) pg.c.Datum {
+        fn call(fcinfo: pg.FunctionCallInfo) callconv(.c) pg.Datum {
             return pgCall(@src(), function, fcinfo);
         }
     };
@@ -96,8 +96,8 @@ pub const ArgType = args.ArgType;
 pub inline fn pgCall(
     comptime src: std.builtin.SourceLocation,
     comptime impl: anytype,
-    fcinfo: pg.c.FunctionCallInfo,
-) pg.c.Datum {
+    fcinfo: pg.FunctionCallInfo,
+) pg.Datum {
     const fnType = @TypeOf(impl);
     const funcArgType = std.meta.ArgsTuple(fnType);
 

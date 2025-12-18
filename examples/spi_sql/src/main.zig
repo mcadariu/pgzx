@@ -24,8 +24,8 @@ fn query_by_id(id: u32) ![]const u8 {
     var rows = try pgzx.spi.query(QUERY, .{
         .limit = 1,
         .args = .{
-            .types = &[_]pg.c.Oid{pg.c.INT4OID},
-            .values = &[_]pg.c.NullableDatum{try pgzx.datum.toNullableDatum(id)},
+            .types = &[_]pg.Oid{pg.INT4OID},
+            .values = &[_]pg.NullableDatum{try pgzx.datum.toNullableDatum(id)},
         },
     });
     defer rows.deinit();
@@ -50,8 +50,8 @@ fn query_by_value(value: []const u8) !u32 {
     var rows = pgzx.spi.RowsOf(u32).init(try pgzx.spi.query(QUERY, .{
         .limit = 1,
         .args = .{
-            .types = &[_]pg.c.Oid{pg.c.TEXTOID},
-            .values = &[_]pg.c.NullableDatum{try pgzx.datum.toNullableDatum(value)},
+            .types = &[_]pg.Oid{pg.TEXTOID},
+            .values = &[_]pg.NullableDatum{try pgzx.datum.toNullableDatum(value)},
         },
     }));
     defer rows.deinit();
@@ -70,11 +70,11 @@ fn ins_value(id: u32, value: []const u8) !u32 {
 
     var rows = pgzx.spi.RowsOf(u32).init(try pgzx.spi.query(STMT, .{
         .args = .{
-            .types = &[_]pg.c.Oid{
-                pg.c.INT4OID,
-                pg.c.TEXTOID,
+            .types = &[_]pg.Oid{
+                pg.INT4OID,
+                pg.TEXTOID,
             },
-            .values = &[_]pg.c.NullableDatum{
+            .values = &[_]pg.NullableDatum{
                 try pgzx.datum.toNullableDatum(id),
                 try pgzx.datum.toNullableDatum(value),
             },
