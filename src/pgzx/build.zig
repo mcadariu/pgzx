@@ -624,7 +624,7 @@ pub fn runPGConfig(b: *Build, question: []const u8) []const u8 {
     };
 
     if (b.debug.pg_config) {
-        std.debug.print("Running pg_config: {s} {s}\n", .{argv[0], argv[1]});
+        std.debug.print("Running pg_config: {s} {s}\n", .{ argv[0], argv[1] });
     }
 
     var child = std.process.Child.init(&argv, allocator);

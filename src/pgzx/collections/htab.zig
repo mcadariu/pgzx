@@ -217,7 +217,7 @@ pub fn HTab(comptime Context: type) type {
 
         fn keyPtr(k: ConstKeyPtr) ?*anyopaque {
             if (meta.isSlice(Key)) {
-                return @constCast(@ptrCast(k.ptr));
+                return @ptrCast(@constCast(k.ptr));
             }
             return @constCast(k);
         }
@@ -402,7 +402,7 @@ pub inline fn KeyPtr(comptime K: type) type {
 
 inline fn keyPtr(comptime K: type, k: KeyPtr(K)) ?*anyopaque {
     if (meta.isSlice(K)) {
-        return @constCast(@ptrCast(k.ptr));
+        return @ptrCast(@constCast(k.ptr));
     }
     return @constCast(k);
 }
