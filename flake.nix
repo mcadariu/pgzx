@@ -17,7 +17,7 @@
     };
 
     pre-commit-hooks-nix = {
-      url = "github:cachix/pre-commit-hooks.nix";
+      url = "github:cachix/pre-commit-hooks.nix/0db2e67ee49910adfa13010e7f012149660af7f0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
