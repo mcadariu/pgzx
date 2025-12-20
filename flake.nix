@@ -2,7 +2,7 @@
   description = "Description for the project";
 
   inputs = {
-    nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.2405.635732.tar.gz";
+    nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.2511.*.tar.gz";
 
     parts.url = "github:hercules-ci/flake-parts";
 
@@ -17,7 +17,7 @@
     };
 
     pre-commit-hooks-nix = {
-      url = "github:cachix/pre-commit-hooks.nix/0db2e67ee49910adfa13010e7f012149660af7f0";
+      url = "github:cachix/pre-commit-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -177,10 +177,10 @@
                   pkgs.readline
                   pkgs.openssl
                   pkgs.libxml2
-                  pkgs.llvmPackages_17.llvm
-                  pkgs.llvmPackages_17.lld
-                  pkgs.llvmPackages_17.clang
-                  pkgs.llvmPackages_17.clang-unwrapped
+                  pkgs.llvmPackages_19.llvm
+                  pkgs.llvmPackages_19.lld
+                  pkgs.llvmPackages_19.clang
+                  pkgs.llvmPackages_19.clang-unwrapped
                   pkgs.lz4
                   pkgs.zstd
                   pkgs.libxslt
