@@ -48,8 +48,8 @@ in {
       pkgs.shellcheck
       pkgs.shfmt
 
-      pkgs.postgresql_16
-      pkgs.postgresql_16.dev
+      pkgs.postgresql_16_jit
+      pkgs.postgresql_16_jit.pg_config
       pkgs.openssl
       pkgs.gss
       pkgs.krb5

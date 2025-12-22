@@ -40,6 +40,7 @@ in {
       # We also need a local postgres for pglocal that we install in the devshell.
       pkgs.pgzx_scripts
       pkgs.postgresql_16_jit
+      pkgs.postgresql_16_jit.pg_config
 
       # Additional Zig tools.
       pkgs.zls # Zig Language Server
