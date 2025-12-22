@@ -48,7 +48,8 @@ in {
       pkgs.shellcheck
       pkgs.shfmt
 
-      pkgs.postgresql_16_jit
+      pkgs.postgresql_16
+      pkgs.postgresql_16.dev
       pkgs.openssl
       pkgs.gss
       pkgs.krb5
@@ -65,6 +66,7 @@ in {
     export PG_HOME=$PRJ_ROOT/out/default
     export PATH="$PG_HOME/lib/postgresql/pgxs/src/test/regress:$PATH"
     export PATH="$PG_HOME/bin:$PRJ_ROOT/dev/bin:$PATH"
+    export PATH="${pkgs.postgresql_16}/bin:$PATH"
 
     # Nix postgres is patched to find and install libraries into another directory
     # than the default. For our local setup we must overwrite the default location by using
