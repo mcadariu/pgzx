@@ -57,24 +57,47 @@ cp_direct_files() {
 	local src_dir=$2
 	mkdir -p "$dest_dir"
 
-	# Use cp -L to copy and dereference symlinks.
-	# The -n flag prevents overwriting existing files.
-	find "$src_dir" -maxdepth 1 \( -type f -o -type l \) -exec cp -Ln {} "$dest_dir/" \; 2>/dev/null || true
+	# prepare sub directories in the destination directory to ensure write permissions.
+	find "$src_dir" -type d -printf '%P\n' | while read -r dir; do
+		target="${dest_dir}/${dir}"
+		mkdir -p "$target" && chmod u+w "$target" || return 1
+	done
+
+	# # copy the actual files only
+	find "$src_dir" -maxdepth 1 -type f | while read -r file; do
+		cp "$file" "$dest_dir" || return 1
+	done
+
+	# create symlinks
+	find "$src_dir" -maxdepth 1 -type l | while read -r link; do
+		ln -s "$(realpath "$link")" "$dest_dir/$(basename "$link")" || return 1
+	done
 }
 
 cp_recursive() {
 	local dest_dir=$1
 	local src_dir=$2
+	mkdir -p "$dest_dir"
 
 	if [ ! -d "$src_dir" ]; then
 		return 0
 	fi
 
-	# Use cp -rL to copy recursively and dereference symlinks.
-	# The -L flag is critical for Nix packages which use symlinks extensively.
-	mkdir -p "$dest_dir"
-	cp -rL "$src_dir/." "$dest_dir/" 2>/dev/null || true
-	chmod -R u+w "$dest_dir" 2>/dev/null || true
+	# prepare sub directories in the destination directory to ensure write permissions.
+	find "$src_dir" -type d -printf '%P\n' | while read -r dir; do
+		target="${dest_dir}/${dir}"
+		mkdir -p "$target" && chmod u+w "$target" || return 1
+	done
+
+	# copy the actual files only
+	find "$src_dir" -type f -printf '%P\n' | while read -r file; do
+		cp -r "$src_dir/$file" "$dest_dir/$file" || return 1
+	done
+
+	# copy symlinked files by dereferencing them
+	find "$src_dir" -type l -printf '%P\n' | while read -r link; do
+		cp -L "$src_dir/$link" "$dest_dir/$link" || return 1
+	done
 }
 
 mkdir -p "$new_install_dir"
