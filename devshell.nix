@@ -32,6 +32,14 @@
       EOF
     '';
   };
+
+  postgresql_unified = pkgs.symlinkJoin {
+    name = "postgresql-unified";
+    paths = [
+      pkgs.postgresql_16_jit
+      pkgs.postgresql_16_jit.pg_config
+    ];
+  };
   # On darwin we expect command line tools to be installed.
   # It is possible to install clang/gcc as nix package, but linking
   # can be quite a pain.
@@ -48,8 +56,7 @@ in {
       pkgs.shellcheck
       pkgs.shfmt
 
-      pkgs.postgresql_16_jit
-      pkgs.postgresql_16_jit.pg_config
+      postgresql_unified
       pkgs.openssl
       pkgs.gss
       pkgs.krb5
