@@ -70,7 +70,8 @@ cp_direct_files() {
 
 	# create symlinks
 	find "$src_dir" -maxdepth 1 -type l | while read -r link; do
-		ln -s "$(realpath "$link")" "$dest_dir/$(basename "$link")" || return 1
+		target="$dest_dir/$(basename "$link")"
+		[ -e "$target" ] || ln -s "$(realpath "$link")" "$target" || return 1
 	done
 }
 
@@ -96,6 +97,8 @@ cp_recursive() {
 
 	# copy symlinked files by dereferencing them
 	find "$src_dir" -type l -printf '%P\n' | while read -r link; do
+		# Skip directory symlinks - they should be handled separately
+		[ -d "$src_dir/$link" ] && continue
 		cp -L "$src_dir/$link" "$dest_dir/$link" || return 1
 	done
 }
@@ -135,6 +138,7 @@ fi
 ) | sort -u | while read -r dir; do
 	cp_direct_files "$new_install_dir/lib" "$dir"
 done
+cp_recursive "$new_install_dir/lib/bitcode" "$($PG_CONFIG --pkglibdir)/bitcode"
 cp_recursive "$new_install_dir/lib/pkgconfig" "$($PG_CONFIG --pkglibdir)/pkgconfig"
 cp_recursive "$new_install_dir/lib/postgresql" "$($PG_CONFIG --pkglibdir)/postgresql"
 
