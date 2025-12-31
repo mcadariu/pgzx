@@ -12,7 +12,7 @@ comptime {
             pgzx.collections.htab.TestSuite_HTab,
 
             pgzx.meta.TestSuite_Meta,
-                // pgzx.mem.TestSuite_Mem,
+            // pgzx.mem.TestSuite_Mem,
             pgzx.node.TestSuite_Node,
         },
     );
