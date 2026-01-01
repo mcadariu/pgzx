@@ -285,7 +285,13 @@ pub const RunExec = struct {
         child.stdin_behavior = .Ignore;
         child.stdout_behavior = .Inherit;
         child.stderr_behavior = .Inherit;
-        const term = child.spawnAndWait() catch @panic("failed to start process");
+        const term = child.spawnAndWait() catch |err| {
+            const cmd = r.argv.items[0];
+            std.debug.print("Failed to spawn process: {s}\n", .{cmd});
+            std.debug.print("Error: {}\n", .{err});
+            std.debug.print("Command: {s}\n", .{r.argv.items});
+            return step.fail("Failed to start process '{s}': {}", .{ cmd, err });
+        };
         const exit_code = switch (term) {
             .Exited => |code| code,
             else => @panic("process failed"),
