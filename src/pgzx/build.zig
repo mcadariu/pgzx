@@ -289,7 +289,7 @@ pub const RunExec = struct {
             const cmd = r.argv.items[0];
             std.debug.print("Failed to spawn process: {s}\n", .{cmd});
             std.debug.print("Error: {}\n", .{err});
-            std.debug.print("Command: {s}\n", .{r.argv.items});
+            std.debug.print("Command: {any}\n", .{r.argv.items});
             return step.fail("Failed to start process '{s}': {}", .{ cmd, err });
         };
         const exit_code = switch (term) {
