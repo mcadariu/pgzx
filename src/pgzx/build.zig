@@ -357,9 +357,10 @@ pub fn getExtensionDir(b: *Build) []const u8 {
 
 pub fn getPGRegressPath(b: *Build) []const u8 {
     b.paths.pg_regress_path = b.paths.pg_regress_path orelse blk: {
-        const pkglib = b.getPackageLibDir();
-        const pg_regress = "pgxs/src/test/regress/pg_regress";
-        break :blk b.std_build.pathJoin(&[_][]const u8{ pkglib, pg_regress });
+        const include_server_dir = b.getIncludeServerDir();
+        const dev_root = std.fs.path.dirname(std.fs.path.dirname(include_server_dir).?).?;
+        const pg_regress = "lib/pgxs/src/test/regress/pg_regress";
+        break :blk b.std_build.pathJoin(&[_][]const u8{ dev_root, pg_regress });
     };
     return b.paths.pg_regress_path.?;
 }
