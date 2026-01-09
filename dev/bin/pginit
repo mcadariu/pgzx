@@ -88,8 +88,13 @@ log_file=$log_dir/server.log
 
 # create the database
 mkdir -p "$cluster_dir"
-mkdir -p "$data_dir"
 mkdir -p "$log_dir"
+
+if [ -d "$data_dir" ]; then
+	rm -rf "$data_dir"
+fi
+mkdir -p "$data_dir"
+
 "$PG_BIN"/pg_ctl initdb -D "$data_dir" -o "--encoding=UTF8"
 
 # create database user
